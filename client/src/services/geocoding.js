@@ -1,4 +1,4 @@
-git /**
+/**
  * Reverse geocodes coordinates (lat, lng) to a human-readable address name 
  * using the free OpenStreetMap Nominatim API.
  */
