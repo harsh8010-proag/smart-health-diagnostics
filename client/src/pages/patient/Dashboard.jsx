@@ -197,7 +197,7 @@ export default function PatientDashboard() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="mb-8 flex gap-2 rounded-2xl bg-bg-secondary p-1.5 border border-border-custom">
+        <div className="mb-8 flex gap-2 rounded-2xl bg-bg-secondary p-1.5 border border-border-custom overflow-x-auto">
           {[
             { key: 'catalog', label: 'Test Catalog', icon: Beaker },
             { key: 'active', label: 'Active Bookings', icon: Activity, count: activeBookings.length },
@@ -206,11 +206,10 @@ export default function PatientDashboard() {
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 ${
-                activeTab === key
-                  ? 'bg-bg-card text-accent-primary shadow-md border border-accent-primary/30'
-                  : 'text-text-muted hover:text-text-primary hover:bg-bg-card/50'
-              }`}
+              className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 ${activeTab === key
+                ? 'bg-bg-card text-accent-primary shadow-md border border-accent-primary/30'
+                : 'text-text-muted hover:text-text-primary hover:bg-bg-card/50'
+                }`}
             >
               <Icon className="h-4 w-4" />
               <span>{label}</span>
@@ -253,11 +252,10 @@ export default function PatientDashboard() {
                     return (
                       <div
                         key={test._id}
-                        className={`glass-card flex flex-col justify-between p-6 cursor-pointer transition-all duration-300 ${
-                          isSelected
-                            ? 'border-accent-primary ring-2 ring-accent-primary/20 shadow-glow-primary scale-[1.01]'
-                            : ''
-                        }`}
+                        className={`glass-card flex flex-col justify-between p-6 cursor-pointer transition-all duration-300 ${isSelected
+                          ? 'border-accent-primary ring-2 ring-accent-primary/20 shadow-glow-primary scale-[1.01]'
+                          : ''
+                          }`}
                         onClick={() => setSelectedTest(isSelected ? null : test)}
                       >
                         <div>
