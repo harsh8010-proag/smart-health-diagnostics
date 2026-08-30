@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { connectSocket, joinBookingRoom, sendLocation } from '../../services/socket';
 import { StatusBadge } from '../../components/StatusBadge';
+import { getAddressFromCoords } from '../../services/geocoding';
 import Navbar from '../../components/Navbar';
 import {
   MapPin,
@@ -23,6 +24,10 @@ import {
   Radar,
   Phone,
   Building,
+  Play,
+  Square,
+  Car,
+  CheckCircle2,
 } from 'lucide-react';
 
 export default function PhlebotomistDashboard() {
@@ -48,6 +53,46 @@ export default function PhlebotomistDashboard() {
   const [simLat, setSimLat] = useState('19.080');
   const [simLng, setSimLng] = useState('72.880');
 
+  const [simulations, setSimulations] = useState({});
+  const intervalsRef = useRef({});
+
+  useEffect(() => {
+    return () => {
+      // Clean up all simulation intervals on unmount
+      Object.values(intervalsRef.current).forEach(clearInterval);
+    };
+  }, []);
+
+  const [phlebCoords, setPhlebCoords] = useState([72.8856, 19.0896]);
+  const [detectingPhleb, setDetectingPhleb] = useState(false);
+  const [locationName, setLocationName] = useState('Detecting location...');
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationName('Mumbai, Maharashtra');
+      return;
+    }
+    setDetectingPhleb(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const newCoords = [position.coords.longitude, position.coords.latitude];
+        setPhlebCoords(newCoords);
+        setSimLat(position.coords.latitude.toFixed(3));
+        setSimLng(position.coords.longitude.toFixed(3));
+        setDetectingPhleb(false);
+        const name = await getAddressFromCoords(position.coords.latitude, position.coords.longitude);
+        setLocationName(name);
+      },
+      async (err) => {
+        console.error('Geolocation error:', err);
+        setDetectingPhleb(false);
+        const name = await getAddressFromCoords(19.0896, 72.8856);
+        setLocationName(name);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  }, []);
+
   const fetchAssigned = useCallback(async () => {
     try {
       const res = await api.get('/bookings/phlebotomist/assigned');
@@ -62,9 +107,8 @@ export default function PhlebotomistDashboard() {
   const fetchNearby = useCallback(async () => {
     setLoadingNearby(true);
     try {
-      const coords = user.location?.coordinates || [72.8856, 19.0896];
       const res = await api.get(
-        `/bookings/phlebotomist/nearby?lng=${coords[0]}&lat=${coords[1]}`
+        `/bookings/phlebotomist/nearby?lng=${phlebCoords[0]}&lat=${phlebCoords[1]}`
       );
       setNearbyBookings(res.data);
     } catch (err) {
@@ -72,7 +116,7 @@ export default function PhlebotomistDashboard() {
     } finally {
       setLoadingNearby(false);
     }
-  }, [user]);
+  }, [phlebCoords]);
 
   useEffect(() => {
     fetchAssigned();
@@ -158,12 +202,64 @@ export default function PhlebotomistDashboard() {
   };
 
   // Broadcast location
-  const broadcastLocation = () => {
-    assignedBookings.forEach((b) => {
-      if (['en_route', 'arrived'].includes(b.status)) {
-        sendLocation(b._id, parseFloat(simLat), parseFloat(simLng));
-      }
-    });
+  const toggleSimulation = (booking) => {
+    const bookingId = booking._id;
+
+    if (simulations[bookingId]?.active) {
+      // Stop
+      clearInterval(intervalsRef.current[bookingId]);
+      delete intervalsRef.current[bookingId];
+      setSimulations((prev) => ({
+        ...prev,
+        [bookingId]: { active: false, progress: 0 },
+      }));
+    } else {
+      // Start
+      const start = [parseFloat(simLng), parseFloat(simLat)];
+      const end = booking.patientLocation?.coordinates && booking.patientLocation.coordinates[0] !== 0
+        ? booking.patientLocation.coordinates
+        : [start[0] + 0.01, start[1] + 0.01]; // slightly offset if patient coords are [0,0]
+
+      const totalSteps = 15;
+      let step = 0;
+
+      setSimulations((prev) => ({
+        ...prev,
+        [bookingId]: { active: true, progress: 0 },
+      }));
+
+      intervalsRef.current[bookingId] = setInterval(() => {
+        step++;
+        const ratio = step / totalSteps;
+        const currentLng = start[0] + (end[0] - start[0]) * ratio;
+        const currentLat = start[1] + (end[1] - start[1]) * ratio;
+
+        // Emit Socket.io location update
+        sendLocation(bookingId, currentLat, currentLng);
+
+        // Update progress
+        setSimulations((prev) => ({
+          ...prev,
+          [bookingId]: {
+            active: true,
+            progress: Math.round(ratio * 100),
+            currentCoords: [currentLng, currentLat],
+          },
+        }));
+
+        setSimLat(currentLat.toFixed(4));
+        setSimLng(currentLng.toFixed(4));
+
+        if (step >= totalSteps) {
+          clearInterval(intervalsRef.current[bookingId]);
+          delete intervalsRef.current[bookingId];
+          setSimulations((prev) => ({
+            ...prev,
+            [bookingId]: { active: false, progress: 100, completed: true },
+          }));
+        }
+      }, 1500); // Update coordinates every 1.5 seconds
+    }
   };
 
   const getNextStatus = (current) => {
@@ -181,17 +277,25 @@ export default function PhlebotomistDashboard() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-extrabold tracking-tight text-text-primary">
-            Phlebotomist <span className="gradient-text">Agent Portal</span>
-          </h1>
-          <p className="mt-1 text-sm text-text-muted">
-            Manage assigned sample routes, verify patient QR tokens, and link blood tube barcodes.
-          </p>
+        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-text-primary">
+              Phlebotomist <span className="gradient-text">Agent Portal</span>
+            </h1>
+            <p className="mt-1 text-sm text-text-muted">
+              Manage assigned sample routes, verify patient QR tokens, and link blood tube barcodes.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-2xl bg-bg-secondary p-3 border border-border-custom text-xs">
+            <div className={`h-2 w-2 rounded-full ${phlebCoords[0] !== 72.8856 ? 'bg-accent-primary animate-pulse' : 'bg-accent-warm'}`} />
+            <span className="text-text-secondary">
+              📍 {locationName}
+            </span>
+          </div>
         </div>
 
         {/* Stats Row */}
-        <div className="mb-8 grid grid-cols-3 gap-5">
+        <div className="mb-8 grid  grid-cols-2  sm:grid-cols-3 gap-5">
           <div className="glass-card flex items-center gap-4 p-5">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-secondary/15 border border-accent-secondary/20">
               <ClipboardList className="h-6 w-6 text-accent-secondary" />
@@ -227,45 +331,73 @@ export default function PhlebotomistDashboard() {
           </div>
         </div>
 
-        {/* GPS Live Broadcaster Toolbar */}
-        <div className="mb-8 glass-card p-6 border-accent-primary/30 shadow-glow-primary">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary/20 text-accent-primary pulse-glow">
-                <Radio className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-text-primary">Simulate Live GPS Stream</h3>
-                <p className="text-xs text-text-muted">Broadcast coordinates to patient tab via Socket.io</p>
-              </div>
+        {/* Ride Simulation Controller */}
+        <div className="mb-8 glass-card p-6 border-accent-primary/30 shadow-glow-primary relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary/20 text-accent-primary pulse-glow">
+              <Car className="h-5 w-5" />
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-text-muted">Lat:</span>
-                <input
-                  type="number"
-                  value={simLat}
-                  onChange={(e) => setSimLat(e.target.value)}
-                  className="input-styled w-28 py-2 text-xs font-mono"
-                  step="0.001"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-text-muted">Lng:</span>
-                <input
-                  type="number"
-                  value={simLng}
-                  onChange={(e) => setSimLng(e.target.value)}
-                  className="input-styled w-28 py-2 text-xs font-mono"
-                  step="0.001"
-                />
-              </div>
-              <button onClick={broadcastLocation} className="btn-glow py-2.5 px-5 text-xs flex items-center gap-2">
-                <Send className="h-4 w-4" />
-                Broadcast GPS
-              </button>
+            <div>
+              <h3 className="text-base font-bold text-text-primary">En Route Transit Simulator</h3>
+              <p className="text-xs text-text-muted">Simulate and stream live map movements to patients while en route.</p>
             </div>
           </div>
+
+          {assignedBookings.filter(b => b.status === 'en_route').length === 0 ? (
+            <div className="rounded-xl bg-bg-secondary/40 border border-border-custom p-4 text-center text-xs text-text-muted">
+              💡 No active "En Route" collection requests. Change a job's status to <strong>"En Route"</strong> below to enable live ride tracking simulation.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {assignedBookings.filter(b => b.status === 'en_route').map(booking => {
+                const sim = simulations[booking._id] || { active: false, progress: 0 };
+                return (
+                  <div key={booking._id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-bg-secondary border border-border-custom">
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-text-secondary">{booking.test?.testName}</p>
+                      <p className="text-sm font-bold text-text-primary mt-0.5">Patient: {booking.patient?.name}</p>
+                      {sim.active && (
+                        <div className="mt-3">
+                          <div className="flex justify-between text-[10px] text-text-muted mb-1 font-mono">
+                            <span>Simulating drive...</span>
+                            <span>{sim.progress}% Complete</span>
+                          </div>
+                          <div className="w-full bg-bg-primary rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-accent-primary h-1.5 rounded-full transition-all duration-300" style={{ width: `${sim.progress}%` }} />
+                          </div>
+                        </div>
+                      )}
+                      {sim.completed && !sim.active && (
+                        <p className="text-xs text-accent-primary font-semibold flex items-center gap-1 mt-2">
+                          <CheckCircle2 className="h-4 w-4" /> Agent arrived at destination! Verify patient QR code below.
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => toggleSimulation(booking)}
+                      className={`py-2 px-4 text-xs font-semibold rounded-xl flex items-center gap-2 transition ${sim.active
+                        ? 'bg-accent-danger/20 border border-accent-danger/30 text-accent-danger hover:bg-accent-danger/30'
+                        : 'btn-glow'
+                        }`}
+                    >
+                      {sim.active ? (
+                        <>
+                          <Square className="h-3.5 w-3.5 fill-current" />
+                          Stop Simulator
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-3.5 w-3.5 fill-current" />
+                          {sim.completed ? 'Restart Simulator' : 'Start Ride Simulation'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Tab Navigation */}
@@ -280,11 +412,10 @@ export default function PhlebotomistDashboard() {
                 setActiveTab(key);
                 if (key === 'nearby') fetchNearby();
               }}
-              className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 ${
-                activeTab === key
-                  ? 'bg-bg-card text-accent-primary shadow-md border border-accent-primary/30'
-                  : 'text-text-muted hover:text-text-primary hover:bg-bg-card/50'
-              }`}
+              className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 ${activeTab === key
+                ? 'bg-bg-card text-accent-primary shadow-md border border-accent-primary/30'
+                : 'text-text-muted hover:text-text-primary hover:bg-bg-card/50'
+                }`}
             >
               <Icon className="h-4 w-4" />
               <span>{label}</span>

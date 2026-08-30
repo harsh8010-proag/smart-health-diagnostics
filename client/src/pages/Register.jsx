@@ -23,8 +23,6 @@ export default function Register() {
     email: '',
     password: '',
     role: initialRole,
-    lng: '72.8777',
-    lat: '19.076',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,7 +50,7 @@ export default function Register() {
         password: form.password,
         role: form.role,
         location: {
-          coordinates: [parseFloat(form.lng), parseFloat(form.lat)],
+          coordinates: [0, 0],
         },
       });
       const dashboardMap = {
@@ -179,35 +177,7 @@ export default function Register() {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-text-secondary">
-                  <MapPin className="mr-1 inline h-3.5 w-3.5 text-accent-primary" />
-                  Longitude
-                </label>
-                <input
-                  type="number"
-                  name="lng"
-                  value={form.lng}
-                  onChange={handleChange}
-                  className="input-styled text-xs sm:text-sm"
-                  step="any"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-text-secondary">
-                  Latitude
-                </label>
-                <input
-                  type="number"
-                  name="lat"
-                  value={form.lat}
-                  onChange={handleChange}
-                  className="input-styled text-xs sm:text-sm"
-                  step="any"
-                />
-              </div>
-            </div>
+
 
             <button
               type="submit"

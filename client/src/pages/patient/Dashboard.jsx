@@ -4,6 +4,8 @@ import api from '../../services/api';
 import { connectSocket, joinBookingRoom } from '../../services/socket';
 import { StatusBadge, StatusTimeline } from '../../components/StatusBadge';
 import LiveMap from '../../components/LiveMap';
+import LocationPickerMap from '../../components/LocationPickerMap';
+import { getAddressFromCoords } from '../../services/geocoding';
 import Navbar from '../../components/Navbar';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -38,6 +40,51 @@ export default function PatientDashboard() {
   const [activeTab, setActiveTab] = useState('catalog');
   const [phlebLocations, setPhlebLocations] = useState({});
   const [loadingData, setLoadingData] = useState(true);
+
+  const [bookingLocation, setBookingLocation] = useState(
+    user?.location?.coordinates && user.location.coordinates[0] !== 0
+      ? user.location.coordinates
+      : [72.8777, 19.076]
+  );
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [locError, setLocError] = useState('');
+  const [collectionAddress, setCollectionAddress] = useState('Detecting address...');
+
+  useEffect(() => {
+    const fetchAddress = async () => {
+      setCollectionAddress('Detecting address...');
+      const address = await getAddressFromCoords(bookingLocation[1], bookingLocation[0]);
+      setCollectionAddress(address);
+    };
+    fetchAddress();
+  }, [bookingLocation]);
+
+  useEffect(() => {
+    if (user?.location?.coordinates && user.location.coordinates[0] !== 0) {
+      setBookingLocation(user.location.coordinates);
+    }
+  }, [user]);
+
+  const detectMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setDetectingLocation(true);
+    setLocError('');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setBookingLocation([position.coords.longitude, position.coords.latitude]);
+        setDetectingLocation(false);
+      },
+      (err) => {
+        console.error(err);
+        setLocError('Failed to retrieve location. Please select on the map manually.');
+        setDetectingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  };
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -110,7 +157,7 @@ export default function PatientDashboard() {
         testId: selectedTest._id,
         slot: slotDate,
         location: {
-          coordinates: user.location?.coordinates || [72.8777, 19.076],
+          coordinates: bookingLocation,
         },
       });
       setSelectedTest(null);
@@ -319,8 +366,8 @@ export default function PatientDashboard() {
                       </button>
                     </div>
 
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-                      <div className="flex-1">
+                    <div className="grid gap-6 md:grid-cols-2 mb-6">
+                      <div>
                         <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-text-secondary">
                           <Calendar className="mr-1.5 inline h-4 w-4 text-accent-primary" />
                           Preferred Slot Date & Time
@@ -333,6 +380,42 @@ export default function PatientDashboard() {
                           min={new Date().toISOString().slice(0, 16)}
                         />
                       </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                            <MapPin className="h-4 w-4 text-accent-primary" />
+                            Select Sample Collection Location
+                          </label>
+                          <button
+                            type="button"
+                            onClick={detectMyLocation}
+                            disabled={detectingLocation}
+                            className="text-xs font-semibold text-accent-primary hover:underline flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {detectingLocation ? (
+                              <>
+                                <Loader2 className="h-3 w-3 animate-spin" /> Detecting...
+                              </>
+                            ) : (
+                              'Use Current Location'
+                            )}
+                          </button>
+                        </div>
+                        {locError && <p className="text-[11px] text-accent-danger mb-2 font-medium">{locError}</p>}
+                        
+                        <LocationPickerMap
+                          coordinates={bookingLocation}
+                          onChange={setBookingLocation}
+                          height="200px"
+                        />
+                        <div className="mt-2 text-xs text-text-secondary flex items-start gap-1">
+                          <span className="font-semibold text-accent-primary flex-shrink-0">📍 Address:</span>
+                          <span className="text-text-muted text-left leading-relaxed">{collectionAddress}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end border-t border-border-custom pt-5">
                       <button
                         onClick={handleBook}
                         disabled={!slotDate || bookingLoading}
