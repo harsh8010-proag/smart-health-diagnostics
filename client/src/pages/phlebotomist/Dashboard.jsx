@@ -1,0 +1,561 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
+import { connectSocket, joinBookingRoom, sendLocation } from '../../services/socket';
+import { StatusBadge } from '../../components/StatusBadge';
+import Navbar from '../../components/Navbar';
+import {
+  MapPin,
+  Navigation,
+  QrCode,
+  Barcode,
+  Check,
+  X,
+  Loader2,
+  User,
+  Calendar,
+  TestTube2,
+  ArrowRight,
+  Send,
+  Radio,
+  Truck,
+  ClipboardList,
+  Radar,
+  Phone,
+  Building,
+} from 'lucide-react';
+
+export default function PhlebotomistDashboard() {
+  const { user } = useAuth();
+  const [nearbyBookings, setNearbyBookings] = useState([]);
+  const [assignedBookings, setAssignedBookings] = useState([]);
+  const [activeTab, setActiveTab] = useState('assigned');
+  const [loadingNearby, setLoadingNearby] = useState(false);
+  const [loadingAssigned, setLoadingAssigned] = useState(true);
+
+  // QR scan state
+  const [scanModal, setScanModal] = useState(null);
+  const [qrInput, setQrInput] = useState('');
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+
+  // Barcode attach state
+  const [barcodeModal, setBarcodeModal] = useState(null);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
+
+  // Location simulation
+  const [simLat, setSimLat] = useState('19.080');
+  const [simLng, setSimLng] = useState('72.880');
+
+  const fetchAssigned = useCallback(async () => {
+    try {
+      const res = await api.get('/bookings/phlebotomist/assigned');
+      setAssignedBookings(res.data);
+    } catch (err) {
+      console.error('Fetch assigned error:', err);
+    } finally {
+      setLoadingAssigned(false);
+    }
+  }, []);
+
+  const fetchNearby = useCallback(async () => {
+    setLoadingNearby(true);
+    try {
+      const coords = user.location?.coordinates || [72.8856, 19.0896];
+      const res = await api.get(
+        `/bookings/phlebotomist/nearby?lng=${coords[0]}&lat=${coords[1]}`
+      );
+      setNearbyBookings(res.data);
+    } catch (err) {
+      console.error('Fetch nearby error:', err);
+    } finally {
+      setLoadingNearby(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchAssigned();
+    fetchNearby();
+  }, [fetchAssigned, fetchNearby]);
+
+  // Socket.io
+  useEffect(() => {
+    const socket = connectSocket();
+    assignedBookings.forEach((b) => joinBookingRoom(b._id));
+
+    socket.on('STATUS_CHANGED', ({ bookingId, status }) => {
+      setAssignedBookings((prev) =>
+        prev.map((b) => (b._id === bookingId ? { ...b, status } : b))
+      );
+    });
+
+    return () => {
+      socket.off('STATUS_CHANGED');
+    };
+  }, [assignedBookings.length]);
+
+  // Accept booking
+  const acceptBooking = async (id) => {
+    try {
+      await api.patch(`/bookings/${id}/accept`);
+      fetchNearby();
+      fetchAssigned();
+    } catch (err) {
+      console.error('Accept error:', err);
+    }
+  };
+
+  // Update status
+  const updateStatus = async (id, status) => {
+    try {
+      await api.patch(`/bookings/${id}/update-status`, { status });
+      fetchAssigned();
+    } catch (err) {
+      console.error('Status update error:', err);
+    }
+  };
+
+  // Scan QR
+  const handleScanQR = async () => {
+    if (!scanModal || !qrInput) return;
+    setScanLoading(true);
+    setScanResult(null);
+    try {
+      await api.patch(`/bookings/${scanModal._id}/scan-qr`, {
+        qrToken: qrInput,
+      });
+      setScanResult('success');
+      setTimeout(() => {
+        setScanModal(null);
+        setScanResult(null);
+        setQrInput('');
+        fetchAssigned();
+      }, 1500);
+    } catch (err) {
+      setScanResult('error');
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  // Attach barcode
+  const handleAttachBarcode = async () => {
+    if (!barcodeModal || !barcodeInput) return;
+    setBarcodeLoading(true);
+    try {
+      await api.patch(`/bookings/${barcodeModal._id}/attach-barcode`, {
+        barcode: barcodeInput,
+      });
+      setBarcodeModal(null);
+      setBarcodeInput('');
+      fetchAssigned();
+    } catch (err) {
+      console.error('Barcode error:', err);
+    } finally {
+      setBarcodeLoading(false);
+    }
+  };
+
+  // Broadcast location
+  const broadcastLocation = () => {
+    assignedBookings.forEach((b) => {
+      if (['en_route', 'arrived'].includes(b.status)) {
+        sendLocation(b._id, parseFloat(simLat), parseFloat(simLng));
+      }
+    });
+  };
+
+  const getNextStatus = (current) => {
+    const map = {
+      en_route: 'arrived',
+      arrived: 'sample_collected',
+      sample_collected: 'in_transit',
+    };
+    return map[current] || null;
+  };
+
+  return (
+    <div className="min-h-screen bg-bg-primary pb-16">
+      <Navbar />
+
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-extrabold tracking-tight text-text-primary">
+            Phlebotomist <span className="gradient-text">Agent Portal</span>
+          </h1>
+          <p className="mt-1 text-sm text-text-muted">
+            Manage assigned sample routes, verify patient QR tokens, and link blood tube barcodes.
+          </p>
+        </div>
+
+        {/* Stats Row */}
+        <div className="mb-8 grid grid-cols-3 gap-5">
+          <div className="glass-card flex items-center gap-4 p-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-secondary/15 border border-accent-secondary/20">
+              <ClipboardList className="h-6 w-6 text-accent-secondary" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-text-primary">
+                {assignedBookings.length}
+              </p>
+              <p className="text-xs font-medium text-text-muted mt-0.5">Assigned Routes</p>
+            </div>
+          </div>
+          <div className="glass-card flex items-center gap-4 p-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-primary/15 border border-accent-primary/20">
+              <Radar className="h-6 w-6 text-accent-primary" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-text-primary">
+                {nearbyBookings.length}
+              </p>
+              <p className="text-xs font-medium text-text-muted mt-0.5">Nearby (10km)</p>
+            </div>
+          </div>
+          <div className="glass-card flex items-center gap-4 p-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-warm/15 border border-accent-warm/20">
+              <Navigation className="h-6 w-6 text-accent-warm" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-text-primary">
+                {assignedBookings.filter((b) => b.status === 'en_route').length}
+              </p>
+              <p className="text-xs font-medium text-text-muted mt-0.5">Active En Route</p>
+            </div>
+          </div>
+        </div>
+
+        {/* GPS Live Broadcaster Toolbar */}
+        <div className="mb-8 glass-card p-6 border-accent-primary/30 shadow-glow-primary">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary/20 text-accent-primary pulse-glow">
+                <Radio className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-text-primary">Simulate Live GPS Stream</h3>
+                <p className="text-xs text-text-muted">Broadcast coordinates to patient tab via Socket.io</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-text-muted">Lat:</span>
+                <input
+                  type="number"
+                  value={simLat}
+                  onChange={(e) => setSimLat(e.target.value)}
+                  className="input-styled w-28 py-2 text-xs font-mono"
+                  step="0.001"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-text-muted">Lng:</span>
+                <input
+                  type="number"
+                  value={simLng}
+                  onChange={(e) => setSimLng(e.target.value)}
+                  className="input-styled w-28 py-2 text-xs font-mono"
+                  step="0.001"
+                />
+              </div>
+              <button onClick={broadcastLocation} className="btn-glow py-2.5 px-5 text-xs flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                Broadcast GPS
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="mb-8 flex gap-2 rounded-2xl bg-bg-secondary p-1.5 border border-border-custom">
+          {[
+            { key: 'assigned', label: 'My Assigned Routes', icon: ClipboardList, count: assignedBookings.length },
+            { key: 'nearby', label: 'Available Nearby Requests', icon: Radar, count: nearbyBookings.length },
+          ].map(({ key, label, icon: Icon, count }) => (
+            <button
+              key={key}
+              onClick={() => {
+                setActiveTab(key);
+                if (key === 'nearby') fetchNearby();
+              }}
+              className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 ${
+                activeTab === key
+                  ? 'bg-bg-card text-accent-primary shadow-md border border-accent-primary/30'
+                  : 'text-text-muted hover:text-text-primary hover:bg-bg-card/50'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+              {count > 0 && (
+                <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent-primary/20 px-1.5 text-xs font-bold text-accent-primary border border-accent-primary/30">
+                  {count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ─── ASSIGNED TAB ─── */}
+        {activeTab === 'assigned' && (
+          <div className="animate-fade-in space-y-6">
+            {loadingAssigned ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="h-10 w-10 animate-spin text-accent-primary" />
+              </div>
+            ) : assignedBookings.length === 0 ? (
+              <div className="glass-card flex flex-col items-center justify-center py-20 text-center p-8">
+                <ClipboardList className="mb-4 h-14 w-14 text-text-muted/30" />
+                <h3 className="text-xl font-bold text-text-primary">No Assigned Routes</h3>
+                <p className="mt-1 text-sm text-text-muted">
+                  Accept nearby collection requests to build your schedule.
+                </p>
+              </div>
+            ) : (
+              assignedBookings.map((booking) => (
+                <div key={booking._id} className="glass-card p-6 sm:p-8 space-y-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border-custom pb-4">
+                    <div>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <h3 className="text-xl font-bold text-text-primary">
+                          {booking.test?.testName}
+                        </h3>
+                        <StatusBadge status={booking.status} />
+                      </div>
+                      <p className="mt-1.5 text-xs text-text-muted flex items-center gap-2">
+                        <User className="h-3.5 w-3.5 text-accent-primary" />
+                        Patient: <strong className="text-text-primary">{booking.patient?.name}</strong> ({booking.patient?.email})
+                      </p>
+                      <p className="mt-1 text-xs text-text-muted flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-accent-secondary" />
+                        Scheduled Slot: {new Date(booking.slot).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons Toolbar */}
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    {booking.status === 'en_route' && (
+                      <button
+                        onClick={() => setScanModal(booking)}
+                        className="btn-glow px-5 py-2.5 text-xs flex items-center gap-2"
+                      >
+                        <QrCode className="h-4 w-4" />
+                        Scan Patient QR Code
+                      </button>
+                    )}
+
+                    {booking.status === 'arrived' && (
+                      <button
+                        onClick={() => setBarcodeModal(booking)}
+                        className="btn-glow px-5 py-2.5 text-xs flex items-center gap-2"
+                      >
+                        <Barcode className="h-4 w-4" />
+                        Attach Tube Barcode
+                      </button>
+                    )}
+
+                    {getNextStatus(booking.status) && (
+                      <button
+                        onClick={() =>
+                          updateStatus(booking._id, getNextStatus(booking.status))
+                        }
+                        className="btn-secondary px-4 py-2.5 text-xs flex items-center gap-2"
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                        Advance to {getNextStatus(booking.status).replace('_', ' ')}
+                      </button>
+                    )}
+
+                    {booking.status === 'sample_collected' && (
+                      <button
+                        onClick={() => updateStatus(booking._id, 'in_transit')}
+                        className="btn-secondary border-accent-warm/40 text-accent-warm hover:bg-accent-warm/10 px-5 py-2.5 text-xs flex items-center gap-2"
+                      >
+                        <Truck className="h-4 w-4" />
+                        Dispatch Sample to Lab
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Barcode readout */}
+                  {booking.sampleBarcode && (
+                    <div className="flex items-center gap-3 rounded-xl bg-accent-primary/10 border border-accent-primary/30 p-4">
+                      <TestTube2 className="h-5 w-5 text-accent-primary" />
+                      <div>
+                        <p className="text-xs text-text-muted">Linked Barcode ID</p>
+                        <p className="font-mono text-sm font-bold text-accent-primary">
+                          {booking.sampleBarcode}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ─── NEARBY TAB ─── */}
+        {activeTab === 'nearby' && (
+          <div className="animate-fade-in space-y-4">
+            {loadingNearby ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="h-10 w-10 animate-spin text-accent-primary" />
+              </div>
+            ) : nearbyBookings.length === 0 ? (
+              <div className="glass-card flex flex-col items-center justify-center py-20 text-center p-8">
+                <Radar className="mb-4 h-14 w-14 text-text-muted/30" />
+                <h3 className="text-xl font-bold text-text-primary">No Nearby Unassigned Requests</h3>
+                <p className="mt-1 text-sm text-text-muted">
+                  No pending patient requests found within 10km of your coordinates.
+                </p>
+              </div>
+            ) : (
+              nearbyBookings.map((booking) => (
+                <div key={booking._id} className="glass-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-bold text-text-primary">
+                      {booking.test?.testName}
+                    </h3>
+                    <p className="text-xs text-text-muted flex items-center gap-2">
+                      <User className="h-3.5 w-3.5 text-accent-primary" />
+                      Patient: {booking.patient?.name}
+                    </p>
+                    <p className="text-xs text-text-muted flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-accent-secondary" />
+                      Slot: {new Date(booking.slot).toLocaleString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => acceptBooking(booking._id)}
+                    className="btn-glow px-6 py-2.5 text-xs flex items-center gap-2 self-start sm:self-auto"
+                  >
+                    <Check className="h-4 w-4" />
+                    Accept Request
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* ─── QR SCAN MODAL ─── */}
+      {scanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <div className="animate-fade-in glass-card w-full max-w-lg p-8 border-accent-primary/40 shadow-glow-primary">
+            <div className="mb-6 flex items-center justify-between border-b border-border-custom pb-4">
+              <h3 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                <QrCode className="h-6 w-6 text-accent-primary" />
+                Patient QR Token Verification
+              </h3>
+              <button
+                onClick={() => {
+                  setScanModal(null);
+                  setQrInput('');
+                  setScanResult(null);
+                }}
+                className="rounded-xl p-2 text-text-muted hover:bg-bg-card hover:text-text-primary"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="mb-4 text-xs text-text-muted leading-relaxed">
+              Enter or paste the patient's QR token code to verify arrival for:{' '}
+              <strong className="text-text-primary">{scanModal.test?.testName}</strong>
+            </p>
+
+            <input
+              type="text"
+              value={qrInput}
+              onChange={(e) => setQrInput(e.target.value)}
+              className="input-styled mb-5 py-3.5 font-mono text-sm"
+              placeholder="Paste QR token string..."
+            />
+
+            {scanResult === 'success' && (
+              <div className="mb-5 flex items-center gap-2 rounded-xl bg-accent-primary/15 border border-accent-primary/30 p-4 text-sm font-semibold text-accent-primary">
+                <Check className="h-5 w-5" />
+                QR verified! Status updated to Arrived.
+              </div>
+            )}
+            {scanResult === 'error' && (
+              <div className="mb-5 rounded-xl bg-accent-danger/15 border border-accent-danger/30 p-4 text-sm font-semibold text-accent-danger">
+                Invalid QR token. Verification failed.
+              </div>
+            )}
+
+            <button
+              onClick={handleScanQR}
+              disabled={!qrInput || scanLoading}
+              className="btn-glow w-full py-3.5 text-sm flex items-center justify-center gap-2"
+            >
+              {scanLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  Verify & Mark Arrived
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── BARCODE MODAL ─── */}
+      {barcodeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <div className="animate-fade-in glass-card w-full max-w-lg p-8 border-accent-primary/40 shadow-glow-primary">
+            <div className="mb-6 flex items-center justify-between border-b border-border-custom pb-4">
+              <h3 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                <Barcode className="h-6 w-6 text-accent-primary" />
+                Attach Blood Tube Barcode
+              </h3>
+              <button
+                onClick={() => {
+                  setBarcodeModal(null);
+                  setBarcodeInput('');
+                }}
+                className="rounded-xl p-2 text-text-muted hover:bg-bg-card hover:text-text-primary"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="mb-4 text-xs text-text-muted leading-relaxed">
+              Scan or enter the unique tube barcode for:{' '}
+              <strong className="text-text-primary">{barcodeModal.test?.testName}</strong>
+            </p>
+
+            <input
+              type="text"
+              value={barcodeInput}
+              onChange={(e) => setBarcodeInput(e.target.value)}
+              className="input-styled mb-5 py-3.5 font-mono text-sm"
+              placeholder="e.g. SBT-2024-00123"
+            />
+
+            <button
+              onClick={handleAttachBarcode}
+              disabled={!barcodeInput || barcodeLoading}
+              className="btn-glow w-full py-3.5 text-sm flex items-center justify-center gap-2"
+            >
+              {barcodeLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  Attach Barcode & Complete Collection
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
