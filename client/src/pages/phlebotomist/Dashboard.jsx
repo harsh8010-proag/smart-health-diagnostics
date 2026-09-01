@@ -295,7 +295,7 @@ export default function PhlebotomistDashboard() {
         </div>
 
         {/* Stats Row */}
-        <div className="mb-8 grid  grid-cols-2  sm:grid-cols-3 gap-5">
+        <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 gap-5">
           <div className="glass-card flex items-center gap-4 p-5">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-secondary/15 border border-accent-secondary/20">
               <ClipboardList className="h-6 w-6 text-accent-secondary" />

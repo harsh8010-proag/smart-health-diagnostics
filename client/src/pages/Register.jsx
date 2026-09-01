@@ -173,12 +173,8 @@ export default function Register() {
               >
                 <option value="patient">🧑 Patient (Home Blood Test Bookings)</option>
                 <option value="phlebotomist">💉 Phlebotomist (Sample Collection Gigs)</option>
-                <option value="lab_admin">🔬 Lab Admin (Laboratory Processing)</option>
               </select>
             </div>
-
-
-
             <button
               type="submit"
               disabled={loading}

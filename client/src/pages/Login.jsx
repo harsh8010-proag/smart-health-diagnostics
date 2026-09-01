@@ -168,7 +168,7 @@ export default function Login() {
           <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-wider text-text-muted flex items-center justify-center gap-1.5">
             <span>⚡ 1-Click Instant Demo Login</span>
           </p>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               onClick={() => quickLogin('patient@test.com')}
               disabled={loading}
@@ -188,16 +188,6 @@ export default function Login() {
             >
               <span className="text-sm">💉</span>
               <span>Phlebotomist</span>
-            </button>
-            <button
-              onClick={() => quickLogin('labadmin@test.com')}
-              disabled={loading}
-              className={`btn-secondary flex flex-col items-center gap-1 py-2.5 text-xs transition ${
-                initialRole === 'lab_admin' ? 'border-purple-400 text-purple-400 bg-purple-500/10' : ''
-              }`}
-            >
-              <span className="text-sm">🔬</span>
-              <span>Lab Admin</span>
             </button>
           </div>
         </div>
