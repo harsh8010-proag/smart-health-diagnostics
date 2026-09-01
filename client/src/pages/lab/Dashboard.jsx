@@ -421,7 +421,14 @@ export default function LabDashboard() {
                             <StatusBadge status={searchedBooking.status} />
                           </div>
                           <h4 className="font-semibold text-text-primary mt-1">{searchedBooking.test?.testName}</h4>
-                          <p className="text-xs text-text-muted mt-0.5">Patient: {searchedBooking.patient?.name}</p>
+                          <p className="text-xs text-text-muted mt-0.5 flex items-center gap-2 flex-wrap">
+                            Patient: {searchedBooking.patient?.name}
+                            {searchedBooking.patient?.age && (
+                              <span className="rounded-md bg-bg-primary border border-border-custom px-1.5 py-0.5 text-[10px] font-semibold text-text-secondary uppercase">
+                                {searchedBooking.patient.age}Y • {searchedBooking.patient.gender}
+                              </span>
+                            )}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2">
                           {['sample_collected', 'in_transit'].includes(searchedBooking.status) && (
@@ -455,7 +462,14 @@ export default function LabDashboard() {
                               {booking.sampleBarcode && <span className="rounded-md bg-accent-primary/10 border border-accent-primary/20 px-2 py-0.5 text-xs font-mono font-semibold text-accent-primary">{booking.sampleBarcode}</span>}
                             </div>
                             <div className="flex items-center gap-4 text-xs text-text-muted flex-wrap">
-                              <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Patient: {booking.patient?.name}</span>
+                              <span className="flex items-center gap-1 flex-wrap">
+                                <User className="h-3.5 w-3.5" /> Patient: {booking.patient?.name}
+                                {booking.patient?.age && (
+                                  <span className="ml-1 rounded-md bg-bg-primary border border-border-custom px-1.5 py-0.5 text-[10px] font-semibold text-text-secondary uppercase">
+                                    {booking.patient.age}Y • {booking.patient.gender}
+                                  </span>
+                                )}
+                              </span>
                               {booking.phlebotomist && <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Phleb: {booking.phlebotomist.name}</span>}
                             </div>
                           </div>

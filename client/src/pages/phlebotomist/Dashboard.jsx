@@ -28,6 +28,9 @@ import {
   Square,
   Car,
   CheckCircle2,
+  Venus,
+  Mars,
+  Minus,
 } from 'lucide-react';
 
 export default function PhlebotomistDashboard() {
@@ -117,6 +120,8 @@ export default function PhlebotomistDashboard() {
       setLoadingNearby(false);
     }
   }, [phlebCoords]);
+  console.log("nearbyBookings", nearbyBookings);
+
 
   useEffect(() => {
     fetchAssigned();
@@ -350,7 +355,26 @@ export default function PhlebotomistDashboard() {
                   <div key={booking._id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-bg-secondary border border-border-custom">
                     <div className="flex-1">
                       <p className="text-xs font-semibold text-text-secondary">{booking.test?.testName}</p>
-                      <p className="text-sm font-bold text-text-primary mt-0.5">Patient: {booking.patient?.name}</p>
+                      <p className="text-sm font-bold text-text-primary mt-0.5 flex items-center gap-2 flex-wrap">
+                        Patient: {booking.patient?.name}
+                        {booking.patient?.age && (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="inline-flex items-center gap-0.5 rounded-md bg-accent-secondary/10 border border-accent-secondary/30 px-1.5 py-0.5 text-[10px] font-semibold text-accent-secondary">
+                              {booking.patient.age}y
+                            </span>
+                            <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold border ${
+                              booking.patient.gender === 'female'
+                                ? 'bg-pink-500/10 border-pink-500/30 text-pink-400'
+                                : booking.patient.gender === 'male'
+                                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                                : 'bg-bg-primary border-border-custom text-text-muted'
+                            }`}>
+                              {booking.patient.gender === 'female' ? <Venus className="h-2.5 w-2.5" /> : booking.patient.gender === 'male' ? <Mars className="h-2.5 w-2.5" /> : <Minus className="h-2.5 w-2.5" />}
+                              {booking.patient.gender}
+                            </span>
+                          </span>
+                        )}
+                      </p>
                       {sim.active && (
                         <div className="mt-3">
                           <div className="flex justify-between text-[10px] text-text-muted mb-1 font-mono">
@@ -449,9 +473,26 @@ export default function PhlebotomistDashboard() {
                         </h3>
                         <StatusBadge status={booking.status} />
                       </div>
-                      <p className="mt-1.5 text-xs text-text-muted flex items-center gap-2">
+                      <p className="mt-1.5 text-xs text-text-muted flex items-center gap-2 flex-wrap">
                         <User className="h-3.5 w-3.5 text-accent-primary" />
-                        Patient: <strong className="text-text-primary">{booking.patient?.name}</strong> ({booking.patient?.email})
+                        Patient: <strong className="text-text-primary">{booking.patient?.name}</strong>
+                        {booking.patient?.age && (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="inline-flex items-center gap-0.5 rounded-md bg-accent-secondary/10 border border-accent-secondary/30 px-1.5 py-0.5 text-[10px] font-semibold text-accent-secondary">
+                              {booking.patient.age}y
+                            </span>
+                            <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold border ${
+                              booking.patient.gender === 'female'
+                                ? 'bg-pink-500/10 border-pink-500/30 text-pink-400'
+                                : booking.patient.gender === 'male'
+                                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                                : 'bg-bg-primary border-border-custom text-text-muted'
+                            }`}>
+                              {booking.patient.gender === 'female' ? <Venus className="h-2.5 w-2.5" /> : booking.patient.gender === 'male' ? <Mars className="h-2.5 w-2.5" /> : <Minus className="h-2.5 w-2.5" />}
+                              {booking.patient.gender}
+                            </span>
+                          </span>
+                        )}
                       </p>
                       <p className="mt-1 text-xs text-text-muted flex items-center gap-2">
                         <Calendar className="h-3.5 w-3.5 text-accent-secondary" />
@@ -535,9 +576,26 @@ export default function PhlebotomistDashboard() {
                     <h3 className="text-lg font-bold text-text-primary">
                       {booking.test?.testName}
                     </h3>
-                    <p className="text-xs text-text-muted flex items-center gap-2">
+                    <p className="text-xs text-text-muted flex items-center gap-2 flex-wrap">
                       <User className="h-3.5 w-3.5 text-accent-primary" />
-                      Patient: {booking.patient?.name}
+                      Patient: <strong className="text-text-primary">{booking.patient?.name}</strong>
+                      {booking.patient?.age && (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="inline-flex items-center gap-0.5 rounded-md bg-accent-secondary/10 border border-accent-secondary/30 px-1.5 py-0.5 text-[10px] font-semibold text-accent-secondary">
+                            {booking.patient.age}y
+                          </span>
+                          <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold border ${
+                            booking.patient.gender === 'female'
+                              ? 'bg-pink-500/10 border-pink-500/30 text-pink-400'
+                              : booking.patient.gender === 'male'
+                              ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                              : 'bg-bg-primary border-border-custom text-text-muted'
+                          }`}>
+                            {booking.patient.gender === 'female' ? <Venus className="h-2.5 w-2.5" /> : booking.patient.gender === 'male' ? <Mars className="h-2.5 w-2.5" /> : <Minus className="h-2.5 w-2.5" />}
+                            {booking.patient.gender}
+                          </span>
+                        </span>
+                      )}
                     </p>
                     <p className="text-xs text-text-muted flex items-center gap-2">
                       <Calendar className="h-3.5 w-3.5 text-accent-secondary" />

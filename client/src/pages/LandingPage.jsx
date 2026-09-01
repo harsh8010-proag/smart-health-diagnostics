@@ -254,8 +254,8 @@ export default function LandingPage() {
     ? user.role === 'phlebotomist'
       ? '/phlebotomist/dashboard'
       : user.role === 'lab_admin'
-      ? '/lab/dashboard'
-      : '/patient/dashboard'
+        ? '/lab/dashboard'
+        : '/patient/dashboard'
     : '/login';
 
   return (
@@ -649,22 +649,20 @@ export default function LandingPage() {
           <div className="inline-flex rounded-xl bg-bg-card p-1.5 border border-border-custom mt-4">
             <button
               onClick={() => setJourneyTab('patient')}
-              className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-xs sm:text-sm font-semibold transition ${
-                journeyTab === 'patient'
-                  ? 'bg-gradient-to-r from-accent-primary to-accent-secondary text-bg-primary shadow-md'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
+              className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-xs sm:text-sm font-semibold transition ${journeyTab === 'patient'
+                ? 'bg-gradient-to-r from-accent-primary to-accent-secondary text-bg-primary shadow-md'
+                : 'text-text-secondary hover:text-text-primary'
+                }`}
             >
               <User className="h-4 w-4" />
               <span>For Patients (Home Collection)</span>
             </button>
             <button
               onClick={() => setJourneyTab('phlebotomist')}
-              className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-xs sm:text-sm font-semibold transition ${
-                journeyTab === 'phlebotomist'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-bg-primary shadow-md'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
+              className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-xs sm:text-sm font-semibold transition ${journeyTab === 'phlebotomist'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-bg-primary shadow-md'
+                : 'text-text-secondary hover:text-text-primary'
+                }`}
             >
               <Syringe className="h-4 w-4" />
               <span>For Phlebotomists (Sample Fleet)</span>
@@ -876,11 +874,10 @@ export default function LandingPage() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`whitespace-nowrap rounded-xl px-4 py-2 text-xs font-medium transition ${
-                  selectedCategory === cat
-                    ? 'bg-accent-primary text-bg-primary font-bold shadow-md shadow-accent-primary/20'
-                    : 'bg-bg-card text-text-secondary hover:bg-bg-card-hover hover:text-text-primary border border-border-custom'
-                }`}
+                className={`whitespace-nowrap rounded-xl px-4 py-2 text-xs font-medium transition ${selectedCategory === cat
+                  ? 'bg-accent-primary text-bg-primary font-bold shadow-md shadow-accent-primary/20'
+                  : 'bg-bg-card text-text-secondary hover:bg-bg-card-hover hover:text-text-primary border border-border-custom'
+                  }`}
               >
                 {cat}
               </button>
@@ -901,11 +898,10 @@ export default function LandingPage() {
                       {test.category || 'General'}
                     </span>
                     <span
-                      className={`rounded-md px-2.5 py-1 text-[10px] font-bold ${
-                        test.fastingHours > 0
-                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                          : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                      }`}
+                      className={`rounded-md px-2.5 py-1 text-[10px] font-bold ${test.fastingHours > 0
+                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                        : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        }`}
                     >
                       {test.fastingHours > 0 ? `🕒 Fasting ${test.fastingHours}h` : '⚡ No Fasting'}
                     </span>
@@ -1335,7 +1331,7 @@ export default function LandingPage() {
             </button>
 
             {/* Modal Header */}
-            <div className="mb-6 flex flex-col items-center text-center">
+            <div className="mb-2 flex flex-col items-center text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-accent-primary to-accent-secondary text-bg-primary mb-3 shadow-glow-primary">
                 {authRole === 'phlebotomist' ? (
                   <Syringe className="h-6 w-6" />
@@ -1349,24 +1345,23 @@ export default function LandingPage() {
                 {selectedServiceIntent
                   ? `Book ${selectedServiceIntent}`
                   : authRole === 'phlebotomist'
-                  ? 'Phlebotomist Access'
-                  : 'Get Started with SmartBlood'}
-              </h3>
-              <p className="text-xs text-text-muted mt-1">
-                Select your portal role or sign in to continue
-              </p>
+                    ? 'Phlebotomist Access'
+                    : 'Get Started with SmartBlood'}
+              </h3>{/* 
+              // <p className="text-xs text-text-muted mt-1">
+              //   Select your portal role or sign in to continue
+              // </p> */}
             </div>
 
             {/* Role Selection Tabs */}
-            <div className="grid grid-cols-3 gap-2 mb-6">
+            {/* <div className="grid grid-cols-3 gap-2 mb-6">
               <button
                 type="button"
                 onClick={() => setAuthRole('patient')}
-                className={`flex flex-col items-center gap-1 rounded-xl p-2.5 text-xs font-semibold border transition ${
-                  authRole === 'patient'
-                    ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
-                    : 'border-border-custom bg-bg-card text-text-muted hover:text-text-primary'
-                }`}
+                className={`flex flex-col items-center gap-1 rounded-xl p-2.5 text-xs font-semibold border transition ${authRole === 'patient'
+                  ? 'border-accent-primary bg-accent-primary/10 text-accent-primary'
+                  : 'border-border-custom bg-bg-card text-text-muted hover:text-text-primary'
+                  }`}
               >
                 <User className="h-4 w-4" />
                 <span>Patient</span>
@@ -1375,11 +1370,10 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => setAuthRole('phlebotomist')}
-                className={`flex flex-col items-center gap-1 rounded-xl p-2.5 text-xs font-semibold border transition ${
-                  authRole === 'phlebotomist'
-                    ? 'border-cyan-400 bg-cyan-500/10 text-cyan-400'
-                    : 'border-border-custom bg-bg-card text-text-muted hover:text-text-primary'
-                }`}
+                className={`flex flex-col items-center gap-1 rounded-xl p-2.5 text-xs font-semibold border transition ${authRole === 'phlebotomist'
+                  ? 'border-cyan-400 bg-cyan-500/10 text-cyan-400'
+                  : 'border-border-custom bg-bg-card text-text-muted hover:text-text-primary'
+                  }`}
               >
                 <Syringe className="h-4 w-4" />
                 <span>Phlebotomist</span>
@@ -1388,16 +1382,15 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => setAuthRole('lab_admin')}
-                className={`flex flex-col items-center gap-1 rounded-xl p-2.5 text-xs font-semibold border transition ${
-                  authRole === 'lab_admin'
-                    ? 'border-purple-400 bg-purple-500/10 text-purple-400'
-                    : 'border-border-custom bg-bg-card text-text-muted hover:text-text-primary'
-                }`}
+                className={`flex flex-col items-center gap-1 rounded-xl p-2.5 text-xs font-semibold border transition ${authRole === 'lab_admin'
+                  ? 'border-purple-400 bg-purple-500/10 text-purple-400'
+                  : 'border-border-custom bg-bg-card text-text-muted hover:text-text-primary'
+                  }`}
               >
                 <FlaskConical className="h-4 w-4" />
                 <span>Lab Admin</span>
               </button>
-            </div>
+            </div> */}
 
             {loginError && (
               <div className="mb-4 rounded-lg border border-accent-danger/30 bg-accent-danger/10 px-3.5 py-2.5 text-xs text-accent-danger">
@@ -1406,7 +1399,7 @@ export default function LandingPage() {
             )}
 
             {/* 1-Click Instant Demo Login */}
-            <div className="mb-5 rounded-xl border border-border-custom bg-bg-card p-4">
+            {/* <div className="mb-5 rounded-xl border border-border-custom bg-bg-card p-4">
               <p className="text-xs font-semibold text-text-primary mb-2 flex items-center justify-between">
                 <span>⚡ Instant 1-Click Demo Login</span>
                 <span className="text-[10px] text-accent-primary uppercase font-mono">No Password Needed</span>
@@ -1446,12 +1439,12 @@ export default function LandingPage() {
                   <span>Sign In as Demo Lab Admin (Dr. Rahul Verma)</span>
                 </button>
               )}
-            </div>
+            </div> */}
 
-            <div className="relative my-4 text-center">
+            <div className="relative mb-6 text-center">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-custom" /></div>
               <span className="relative bg-bg-secondary px-3 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-                Or Sign In with Credentials
+                Sign In with Credentials
               </span>
             </div>
 
