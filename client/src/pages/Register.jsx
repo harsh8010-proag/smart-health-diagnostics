@@ -23,6 +23,8 @@ export default function Register() {
     email: '',
     password: '',
     role: initialRole,
+    age: '',
+    gender: 'male',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,6 +51,8 @@ export default function Register() {
         email: form.email,
         password: form.password,
         role: form.role,
+        age: form.role === 'patient' ? Number(form.age) : undefined,
+        gender: form.role === 'patient' ? form.gender : undefined,
         location: {
           coordinates: [0, 0],
         },
@@ -111,13 +115,13 @@ export default function Register() {
                 Full Name
               </label>
               <div className="relative">
-                <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
                 <input
                   type="text"
                   name="name"
                   value={form.name}
                   onChange={handleChange}
-                  className="input-styled pl-10 text-xs sm:text-sm"
+                  className="input-styled pl-12 text-xs sm:text-sm"
                   placeholder="John Doe"
                   required
                 />
@@ -129,13 +133,13 @@ export default function Register() {
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
                 <input
                   type="email"
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  className="input-styled pl-10 text-xs sm:text-sm"
+                  className="input-styled pl-12 text-xs sm:text-sm"
                   placeholder="you@example.com"
                   required
                 />
@@ -147,19 +151,56 @@ export default function Register() {
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
                 <input
                   type="password"
                   name="password"
                   value={form.password}
                   onChange={handleChange}
-                  className="input-styled pl-10 text-xs sm:text-sm"
+                  className="input-styled pl-12 text-xs sm:text-sm"
                   placeholder="Min. 6 characters"
                   minLength={6}
                   required
                 />
               </div>
             </div>
+
+            {form.role === 'patient' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+                    Age
+                  </label>
+                  <input
+                    type="number"
+                    name="age"
+                    value={form.age}
+                    onChange={handleChange}
+                    className="input-styled text-xs sm:text-sm pl-4"
+                    placeholder="Years"
+                    min="1"
+                    max="120"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+                    Gender
+                  </label>
+                  <select
+                    name="gender"
+                    value={form.gender}
+                    onChange={handleChange}
+                    className="input-styled text-xs sm:text-sm"
+                    required
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="mb-1.5 block text-xs font-medium text-text-secondary">

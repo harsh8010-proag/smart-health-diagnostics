@@ -27,6 +27,7 @@ import {
   Sparkles,
   User,
   ShieldCheck,
+  Eye,
 } from 'lucide-react';
 
 export default function PatientDashboard() {
@@ -40,6 +41,7 @@ export default function PatientDashboard() {
   const [activeTab, setActiveTab] = useState('catalog');
   const [phlebLocations, setPhlebLocations] = useState({});
   const [loadingData, setLoadingData] = useState(true);
+  const [reportPopup, setReportPopup] = useState(null);
 
   const [bookingLocation, setBookingLocation] = useState(
     user?.location?.coordinates && user.location.coordinates[0] !== 0
@@ -282,12 +284,12 @@ export default function PatientDashboard() {
               <div className="animate-fade-in space-y-6">
                 {/* Search Bar */}
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
+                  <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="input-styled py-3.5 pl-12 text-base shadow-sm"
+                    className="input-styled py-3.5 pl-14 text-base shadow-sm"
                     placeholder="Search blood tests by name (e.g., CBC, Thyroid, HbA1c, Lipid)..."
                   />
                 </div>
@@ -561,15 +563,13 @@ export default function PatientDashboard() {
                       </div>
 
                       {booking.reportUrl && (
-                        <a
-                          href={booking.reportUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => setReportPopup(booking.reportUrl)}
                           className="btn-glow px-5 py-2.5 text-xs flex items-center gap-2 self-start sm:self-auto"
                         >
-                          <FileText className="h-4 w-4" />
+                          <Eye className="h-4 w-4" />
                           Download Report PDF
-                        </a>
+                        </button>
                       )}
                     </div>
                   ))
@@ -579,6 +579,31 @@ export default function PatientDashboard() {
           </>
         )}
       </main>
+
+      {/* ─── REPORT POPUP MODAL ─── */}
+      {reportPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <div className="animate-fade-in glass-card w-full max-w-4xl h-[80vh] flex flex-col border-accent-primary/40 shadow-glow-primary overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border-custom bg-bg-secondary">
+              <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                <FileText className="h-5 w-5 text-accent-primary" />
+                Test Report PDF
+              </h3>
+              <div className="flex items-center gap-2">
+                <a href={reportPopup} target="_blank" rel="noopener noreferrer" className="btn-secondary px-3 py-1.5 text-xs">
+                  Open in New Tab
+                </a>
+                <button onClick={() => setReportPopup(null)} className="rounded-xl p-2 text-text-muted hover:bg-bg-card hover:text-text-primary">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 w-full bg-gray-100">
+              <iframe src={reportPopup} className="w-full h-full border-0" title="Report PDF" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

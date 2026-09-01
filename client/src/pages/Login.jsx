@@ -105,12 +105,12 @@ export default function Login() {
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-styled pl-10 text-xs sm:text-sm"
+                  className="input-styled pl-12 text-xs sm:text-sm"
                   placeholder="you@example.com"
                   required
                 />
@@ -124,12 +124,12 @@ export default function Login() {
                 </label>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-styled pl-10 text-xs sm:text-sm"
+                  className="input-styled pl-12 text-xs sm:text-sm"
                   placeholder="••••••••"
                   required
                 />
@@ -163,34 +163,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Quick Login Buttons */}
-        <div className="glass-card p-5">
-          <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-wider text-text-muted flex items-center justify-center gap-1.5">
-            <span>⚡ 1-Click Instant Demo Login</span>
-          </p>
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              onClick={() => quickLogin('patient@test.com')}
-              disabled={loading}
-              className={`btn-secondary flex flex-col items-center gap-1 py-2.5 text-xs transition ${
-                initialRole === 'patient' ? 'border-accent-primary text-accent-primary bg-accent-primary/10' : ''
-              }`}
-            >
-              <span className="text-sm">🧑</span>
-              <span>Patient</span>
-            </button>
-            <button
-              onClick={() => quickLogin('phlebotomist@test.com')}
-              disabled={loading}
-              className={`btn-secondary flex flex-col items-center gap-1 py-2.5 text-xs transition ${
-                initialRole === 'phlebotomist' ? 'border-cyan-400 text-cyan-400 bg-cyan-500/10' : ''
-              }`}
-            >
-              <span className="text-sm">💉</span>
-              <span>Phlebotomist</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

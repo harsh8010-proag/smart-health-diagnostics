@@ -263,12 +263,7 @@ export default function PhlebotomistDashboard() {
   };
 
   const getNextStatus = (current) => {
-    const map = {
-      en_route: 'arrived',
-      arrived: 'sample_collected',
-      sample_collected: 'in_transit',
-    };
-    return map[current] || null;
+    return null; // Disabled manual progression to enforce QR & Barcode usage
   };
 
   return (
@@ -487,17 +482,7 @@ export default function PhlebotomistDashboard() {
                       </button>
                     )}
 
-                    {getNextStatus(booking.status) && (
-                      <button
-                        onClick={() =>
-                          updateStatus(booking._id, getNextStatus(booking.status))
-                        }
-                        className="btn-secondary px-4 py-2.5 text-xs flex items-center gap-2"
-                      >
-                        <ArrowRight className="h-4 w-4" />
-                        Advance to {getNextStatus(booking.status).replace('_', ' ')}
-                      </button>
-                    )}
+                    {/* Manual advance removed to enforce scanning */}
 
                     {booking.status === 'sample_collected' && (
                       <button
