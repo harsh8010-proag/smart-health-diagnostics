@@ -31,6 +31,14 @@ const testCatalogSchema = new mongoose.Schema(
       type: String,
       default: 'General',
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

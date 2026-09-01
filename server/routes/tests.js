@@ -4,13 +4,58 @@ const { verifyToken, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/tests — List all tests (public)
+// GET /api/tests — List all active tests (public)
 router.get('/', async (req, res) => {
   try {
-    const tests = await TestCatalog.find().sort({ testName: 1 });
+    const tests = await TestCatalog.find({ isDeleted: false, isActive: true }).sort({ testName: 1 });
     res.json(tests);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch tests.' });
+  }
+});
+
+// GET /api/tests/admin — List all non-deleted tests for Lab Admin
+router.get('/admin', verifyToken, authorize('lab_admin'), async (req, res) => {
+  try {
+    const tests = await TestCatalog.find({ isDeleted: false }).sort({ testName: 1 });
+    res.json(tests);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch tests.' });
+  }
+});
+
+// POST /api/tests — Create a new test (Lab Admin)
+router.post('/', verifyToken, authorize('lab_admin'), async (req, res) => {
+  try {
+    const newTest = await TestCatalog.create(req.body);
+    res.status(201).json(newTest);
+  } catch (err) {
+    console.error('Create test error:', err);
+    res.status(500).json({ message: 'Failed to create test.', error: err.message });
+  }
+});
+
+// PUT /api/tests/:id — Update an existing test (Lab Admin)
+router.put('/:id', verifyToken, authorize('lab_admin'), async (req, res) => {
+  try {
+    const updated = await TestCatalog.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!updated) return res.status(404).json({ message: 'Test not found' });
+    res.json(updated);
+  } catch (err) {
+    console.error('Update test error:', err);
+    res.status(500).json({ message: 'Failed to update test.' });
+  }
+});
+
+// DELETE /api/tests/:id — Soft delete a test (Lab Admin)
+router.delete('/:id', verifyToken, authorize('lab_admin'), async (req, res) => {
+  try {
+    const deleted = await TestCatalog.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
+    if (!deleted) return res.status(404).json({ message: 'Test not found' });
+    res.json({ message: 'Test deleted successfully.' });
+  } catch (err) {
+    console.error('Delete test error:', err);
+    res.status(500).json({ message: 'Failed to delete test.' });
   }
 });
 

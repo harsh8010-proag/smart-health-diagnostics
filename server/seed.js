@@ -25,8 +25,8 @@ const seedUsers = [
   },
   {
     name: 'Dr. Rahul Verma',
-    email: 'labadmin@test.com',
-    password: 'password123',
+    email: process.env.ADMIN_EMAIL || 'labadmin@test.com',
+    password: process.env.ADMIN_PASSWORD || 'password123',
     role: 'lab_admin',
     location: { type: 'Point', coordinates: [72.8362, 18.9322] }, // Lab location
   },
@@ -85,7 +85,7 @@ async function seed() {
     console.log('─────────────────────────────────────');
     console.log('Patient:       patient@test.com / password123');
     console.log('Phlebotomist:  phlebotomist@test.com / password123');
-    console.log('Lab Admin:     labadmin@test.com / password123');
+    console.log(`Lab Admin:     ${process.env.ADMIN_EMAIL || 'labadmin@test.com'} / [Seeded Password]`);
     console.log('─────────────────────────────────────\n');
 
     process.exit(0);
