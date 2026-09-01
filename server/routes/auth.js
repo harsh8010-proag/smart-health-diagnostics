@@ -8,7 +8,7 @@ const router = express.Router();
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, location } = req.body;
+    const { name, email, password, role, location, age, gender } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -25,6 +25,8 @@ router.post('/register', async (req, res) => {
       location: location
         ? { type: 'Point', coordinates: location.coordinates || [0, 0] }
         : { type: 'Point', coordinates: [0, 0] },
+      ...(role === 'patient' && age ? { age: Number(age) } : {}),
+      ...(role === 'patient' && gender ? { gender } : {}),
     });
 
     // Generate JWT
@@ -42,6 +44,8 @@ router.post('/register', async (req, res) => {
         email: user.email,
         role: user.role,
         location: user.location,
+        age: user.age,
+        gender: user.gender,
       },
     });
   } catch (err) {
@@ -82,6 +86,8 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
         location: user.location,
+        age: user.age,
+        gender: user.gender,
       },
     });
   } catch (err) {
@@ -99,6 +105,8 @@ router.get('/me', verifyToken, async (req, res) => {
       email: req.user.email,
       role: req.user.role,
       location: req.user.location,
+      age: req.user.age,
+      gender: req.user.gender,
     },
   });
 });

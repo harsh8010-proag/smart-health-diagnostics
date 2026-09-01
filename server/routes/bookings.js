@@ -23,9 +23,9 @@ router.post('/book', verifyToken, authorize('patient'), async (req, res) => {
       patientLocation: location
         ? { type: 'Point', coordinates: location.coordinates || [0, 0] }
         : {
-            type: 'Point',
-            coordinates: req.user.location?.coordinates || [0, 0],
-          },
+          type: 'Point',
+          coordinates: req.user.location?.coordinates || [0, 0],
+        },
     });
 
     const populated = await Booking.findById(booking._id)
@@ -76,7 +76,7 @@ router.get(
           },
         },
       })
-        .populate('patient', 'name email location')
+        .populate('patient', 'name email location age gender')
         .populate('test')
         .sort({ slot: 1 });
 
